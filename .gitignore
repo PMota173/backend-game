@@ -2,3 +2,5 @@
 /dist
 /.env
 .eslintcache
+
+/generated/prisma
