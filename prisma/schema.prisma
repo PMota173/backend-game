@@ -1,15 +1,33 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
-model User {
-  id    Int    @id @default(autoincrement())
-  name  String
-  email String @unique
+generator client {
+    provider = "prisma-client-js"
 }
 
+// First Models we will need
+// - Player
+// - Gameroom
+// - Questions
+
+model Player {
+    id        String     @id @default(cuid())
+    name      String
+    gamerooms Gameroom[]
+}
+
+model Gameroom {
+    id        String     @id @default(cuid())
+    name      String
+    players   Player[]
+    prev_questions Question[]
+}
+
+model Question {
+    id                String @id @default(cuid())
+    normal_question   String
+    impostor_question String
+    gameRoom   Gameroom[] // Many to Many relationship with Gameroom
+}
