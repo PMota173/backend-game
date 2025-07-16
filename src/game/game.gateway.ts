@@ -37,7 +37,7 @@ export class GameGateway
     constructor(private readonly gameService: GameService) {}
 
     afterInit(server: Server) {
-        this.logger.log('WebSocket server initialized');
+        this.logger.log('WebSocket server initialized: ', server);
     }
 
     handleConnection(client: Socket) {
@@ -97,21 +97,36 @@ export class GameGateway
             // Acknowledge the client with success and the final game state
             return { success: true, data: updatedGame };
         } catch (error) {
-            this.logger.error(
-                `[joinGame] Failed for client ${client.id} with payload: ${JSON.stringify(
-                    payload,
-                )}`,
-                error.stack,
-            );
+            if (error instanceof Error) {
+                this.logger.error(
+                    `[joinGame] Failed for client ${client.id} with payload: ${JSON.stringify(
+                        payload,
+                    )}`,
+                    error.stack,
+                );
 
-            // Acknowledge the client with a structured error message
-            return {
-                success: false,
-                error: {
-                    message: error.message,
-                    name: error.name, // e.g., 'NotFoundException'
-                },
-            };
+                // Acknowledge the client with a structured error message
+                return {
+                    success: false,
+                    error: {
+                        message: error.message,
+                        name: error.name, // e.g., 'NotFoundException'
+                    },
+                };
+            } else {
+                this.logger.error(
+                    `[joinGame] Unexpected error for client ${client.id} with payload: ${JSON.stringify(
+                        payload,
+                    )}`,
+                    error,
+                );
+                return {
+                    success: false,
+                    error: {
+                        message: 'An unexpected error occurred.',
+                    },
+                };
+            }
         }
     }
 
