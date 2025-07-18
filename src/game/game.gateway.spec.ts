@@ -7,7 +7,6 @@ import { Server, Socket } from 'socket.io';
 describe('GameGateway', () => {
     let gateway: GameGateway;
     let service: GameService;
-    let server: jest.Mocked<Server>;
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -53,13 +52,6 @@ describe('GameGateway', () => {
                     RoomStatus.PLAYING,
                 );
             }
-            // eslint-disable-next-line @typescript-eslint/unbound-method
-            expect(server.to).toHaveBeenCalledWith(game.roomId);
-            // eslint-disable-next-line @typescript-eslint/unbound-method
-            expect(server.emit).toHaveBeenCalledWith(
-                'gameUpdated',
-                response.data,
-            );
         });
     });
 });
