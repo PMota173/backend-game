@@ -8,6 +8,13 @@ export interface GameRoom {
     roomName: string;
     players: Player[];
     limit: number;
+    roomStatus: RoomStatus;
+}
+
+export enum RoomStatus {
+    WAITING = 'WAITING',
+    PLAYING = 'PLAYING',
+    FINISHED = 'FINISHED',
 }
 
 export interface JoiningGamePayload {
@@ -17,4 +24,8 @@ export interface JoiningGamePayload {
 
 export interface CreatingGamePayload {
     roomName: string;
+}
+
+export interface StartingGamePayload {
+    roomId: string;
 }

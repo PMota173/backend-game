@@ -5,8 +5,9 @@ import {
     Logger,
     NotFoundException,
 } from '@nestjs/common';
-import { CreatingGamePayload, GameRoom } from './game.types';
+import { CreatingGamePayload, GameRoom, RoomStatus } from './game.types';
 import { JoiningGamePayload } from './game.types';
+import { StartingGamePayload } from './game.types';
 
 @Injectable()
 export class GameService {
@@ -24,6 +25,7 @@ export class GameService {
             roomName: payload.roomName,
             players: [],
             limit: 8,
+            roomStatus: RoomStatus.WAITING,
         };
 
         this.gameRooms.set(roomId, newGameRoom);
@@ -66,7 +68,38 @@ export class GameService {
                 gameRoom,
             )}`,
         );
+        return gameRoom;
+    }
 
+    startGame(payload: StartingGamePayload): GameRoom {
+        const roomId = payload.roomId;
+
+        const gameRoom = this.gameRooms.get(roomId);
+        if (!gameRoom) {
+            throw new NotFoundException(
+                `Game room with ID ${roomId} not found.`,
+            );
+        }
+
+        if (gameRoom.roomStatus !== RoomStatus.WAITING) {
+            throw new ConflictException(
+                `Game room ${roomId} cannot be started. Current status: ${gameRoom.roomStatus}`,
+            );
+        }
+
+        if (gameRoom.players.length < 3) {
+            throw new ForbiddenException(
+                `Game room ${roomId} requires at least 3 players to start.`,
+            );
+        }
+
+        // Set the game room status to PLAYING
+        gameRoom.roomStatus = RoomStatus.PLAYING;
+        this.logger.log(
+            `Game room ${roomId} started. Current state: ${JSON.stringify(
+                gameRoom,
+            )}`,
+        );
         return gameRoom;
     }
 }

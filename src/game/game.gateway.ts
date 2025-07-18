@@ -9,7 +9,11 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
-import { CreatingGamePayload, JoiningGamePayload } from './game.types';
+import {
+    CreatingGamePayload,
+    JoiningGamePayload,
+    StartingGamePayload,
+} from './game.types';
 
 // Define a standard response structure for acknowledgements
 interface SocketAckResponse<T> {
@@ -63,8 +67,7 @@ export class GameGateway
 
         this.logger.log(`[createGame] Game created with ID: ${newGame.roomId}`);
 
-        // It's often better to emit to a general lobby or namespace rather than all clients
-        // but for simplicity, we'll keep emitting to all.
+        // emits the message to all connected clients for now
         this.server.emit('gameCreated', newGame);
 
         return { success: true, data: newGame };
@@ -131,13 +134,59 @@ export class GameGateway
     }
 
     @SubscribeMessage('startGame')
-    startGame(client: Socket, payload: any): string {
-        // This logic would also be moved to the service
+    startGame(
+        client: Socket,
+        payload: StartingGamePayload,
+    ): SocketAckResponse<any> {
         this.logger.log(
             `[startGame] Event received from ${client.id} with data: ${JSON.stringify(
                 payload,
             )}`,
         );
-        return 'Game Started!'; // This should also be a structured response
+
+        try {
+            const updatedGame = this.gameService.startGame(payload);
+            this.logger.log(
+                `[startGame] Game started successfully for room ${payload.roomId}`,
+            );
+
+            this.server.to(payload.roomId).emit('gameUpdated', updatedGame);
+            this.logger.log(
+                `[startGame] Emitted 'gameUpdated to room ${payload.roomId}`,
+            );
+
+            return { success: true, data: updatedGame };
+        } catch (error) {
+            if (error instanceof Error) {
+                this.logger.error(
+                    `[startGame] Failed for client ${client.id} with payload: ${JSON.stringify(
+                        payload,
+                    )}`,
+                    error.stack,
+                );
+
+                // Acknowledge the client with a structured error message
+                return {
+                    success: false,
+                    error: {
+                        message: error.message,
+                        name: error.name, // e.g., 'NotFoundException'
+                    },
+                };
+            } else {
+                this.logger.error(
+                    `[startGame] Unexpected error for client ${client.id} with payload: ${JSON.stringify(
+                        payload,
+                    )}`,
+                    error,
+                );
+                return {
+                    success: false,
+                    error: {
+                        message: 'An unexpected error occurred.',
+                    },
+                };
+            }
+        }
     }
 }
