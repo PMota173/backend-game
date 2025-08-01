@@ -33,8 +33,6 @@ This repository hosts the backend services for a real-time multiplayer social de
 ## 🏗️ Architecture
 
 The backend follows a modular, layered architecture, leveraging NestJS's capabilities for dependency injection and clear separation of concerns. Key architectural considerations include:
-
-  - **Monorepo Structure:** The backend is part of a larger project, with a clear separation of concerns between frontend and backend.
   - **API-driven:** Provides a RESTful API for standard client-server interactions and WebSocket endpoints for real-time game updates.
   - **Database Abstraction with Prisma:** Prisma ORM is used to interact with the database, providing a type-safe query builder and simplifying database migrations and schema management. This abstracts away direct SQL commands, allowing for more efficient and less error-prone data operations.
   - **Containerized Deployment:** Docker is used to package the application and its dependencies, ensuring portability and ease of deployment across different environments.
