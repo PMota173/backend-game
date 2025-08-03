@@ -7,27 +7,88 @@ generator client {
     provider = "prisma-client-js"
 }
 
-// First Models we will need
-// - Player
-// - Gameroom
-// - Questions
-
 model Player {
-    id        String     @id @default(cuid())
-    name      String
-    gamerooms Gameroom[]
+    id                String              @id @default(cuid())
+    name              String
+    gameRoom          GameRoom?           @relation(fields: [gameRoomId], references: [id])
+    gameRoomId        String?
+    score             Int                 @default(0)
+
+    PlayerAnswer      PlayerAnswer[]
+    PlayerRoleInRound PlayerRoleInRound[]
+    PlayersVotes PlayersVotes[]
 }
 
-model Gameroom {
-    id        String     @id @default(cuid())
-    name      String
-    players   Player[]
-    prev_questions Question[]
+model GameRoom {
+    id       String      @id @default(cuid())
+    gameCode String      @unique
+    name     String
+    players  Player[]
+    rounds   GameRound[]
+    gameStatus GameStatus @default(WAITING)
+}
+
+enum GameStatus {
+    WAITING
+    PLAYING
+    FINISHED
+}
+
+enum RoundStatus {
+    ANSWERING
+    VOTING
+    RESULTS
+    FINISHED
+}
+
+model GameRound {
+    id         String   @id @default(cuid())
+    gameRoomId String
+    gameRoom   GameRoom @relation(fields: [gameRoomId], references: [id])
+    questionId String
+    question   Question @relation(fields: [questionId], references: [id])
+
+    status     RoundStatus @default(ANSWERING)
+
+    roundNumber Int
+
+    PlayerRoleInRound PlayerRoleInRound[]
+
+    PlayerAnswer PlayerAnswer[]
+
+    PlayersVotes PlayersVotes[]
+}
+
+model PlayerAnswer {
+    id        String    @id @default(cuid())
+    roundId   String // reference to GameRound
+    GameRound GameRound @relation(fields: [roundId], references: [id])
+    answer    String
+    playerId  String
+    Player    Player    @relation(fields: [playerId], references: [id])
+}
+
+model PlayerRoleInRound {
+    id        String    @id @default(cuid())
+    roundId   String // reference to GameRound
+    GameRound GameRound @relation(fields: [roundId], references: [id])
+    role      String // "impostor" or "normal"
+    playerId  String
+    Player    Player    @relation(fields: [playerId], references: [id])
+}
+
+model PlayersVotes {
+    id        String    @id @default(cuid())
+    roundId   String // reference to GameRound
+    GameRound GameRound @relation(fields: [roundId], references: [id])
+    playerId  String
+    Player    Player    @relation(fields: [playerId], references: [id])
+    votedFor  String // playerId of the player being voted for
 }
 
 model Question {
-    id                String @id @default(cuid())
+    id                String      @id @default(cuid())
     normal_question   String
     impostor_question String
-    gameRoom   Gameroom[] // Many to Many relationship with Gameroom
+    GameRound         GameRound[]
 }
