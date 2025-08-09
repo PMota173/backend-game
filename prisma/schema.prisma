@@ -14,11 +14,11 @@ model Player {
     gameRoomId String?
     score      Int       @default(0)
 
-    PlayerAnswer      PlayerAnswer[]
-    PlayerRoleInRound PlayerRoleInRound[]
+    PlayerAnswers      PlayerAnswer[]
+    PlayerRoleInRounds PlayerRoleInRound[]
 
-    PlayersVoted PlayersVotes[] @relation("PlayerVotedFor")
-    PlayersVotes PlayersVotes[] @relation("PlayerId")
+    votesCast PlayersVotes[] @relation("voterId")
+    votesRecv PlayersVotes[] @relation("targetId")
 }
 
 model GameRoom {
@@ -44,13 +44,12 @@ enum RoundStatus {
 }
 
 model GameRound {
-    id         String   @id @default(cuid())
+    id         String      @id @default(cuid())
+    status     RoundStatus @default(ANSWERING)
     gameRoomId String
-    gameRoom   GameRoom @relation(fields: [gameRoomId], references: [id])
+    gameRoom   GameRoom    @relation(fields: [gameRoomId], references: [id])
     questionId String
-    question   Question @relation(fields: [questionId], references: [id])
-
-    status RoundStatus @default(ANSWERING)
+    question   Question    @relation(fields: [questionId], references: [id])
 
     roundNumber Int
 
@@ -71,12 +70,12 @@ model PlayerAnswer {
 }
 
 model PlayerRoleInRound {
-    id        String    @id @default(cuid())
+    id        String     @id @default(cuid())
     roundId   String // reference to GameRound
-    GameRound GameRound @relation(fields: [roundId], references: [id])
+    GameRound GameRound  @relation(fields: [roundId], references: [id])
     role      PlayerRole // "impostor" or "normal"
     playerId  String
-    Player    Player    @relation(fields: [playerId], references: [id])
+    Player    Player     @relation(fields: [playerId], references: [id])
 }
 
 enum PlayerRole {
@@ -85,13 +84,13 @@ enum PlayerRole {
 }
 
 model PlayersVotes {
-    id             String    @id @default(cuid())
-    roundId        String // reference to GameRound
-    GameRound      GameRound @relation(fields: [roundId], references: [id])
-    Player         Player    @relation("PlayerId", fields: [playerId], references: [id])
-    playerId       String
-    playerVotedFor Player    @relation("PlayerVotedFor", fields: [votedFor], references: [id])
-    votedFor       String // playerId of the player being voted for
+    id        String    @id @default(cuid())
+    roundId   String // reference to GameRound
+    GameRound GameRound @relation(fields: [roundId], references: [id])
+    voter     Player    @relation("voterId", fields: [voterId], references: [id])
+    voterId   String
+    target    Player    @relation("targetId", fields: [targetId], references: [id])
+    targetId  String // playerId of the player being voted for
 }
 
 model Question {
