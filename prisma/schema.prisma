@@ -7,6 +7,7 @@ generator client {
     provider = "prisma-client-js"
 }
 
+// This schema is designed to be used combined with Redis for short-lived, high-frequency state
 model Player {
     id         String    @id @default(cuid())
     name       String
@@ -14,11 +15,13 @@ model Player {
     gameRoomId String?
     score      Int       @default(0)
 
-    PlayerAnswers      PlayerAnswer[]
-    PlayerRoleInRounds PlayerRoleInRound[]
+    answers   PlayerAnswer[]
+    roles     PlayerRoleInRound[]
+    votesCast PlayersVotes[]      @relation("VotesCast")
+    votesRecv PlayersVotes[]      @relation("VotesRecv")
 
-    votesCast PlayersVotes[] @relation("voterId")
-    votesRecv PlayersVotes[] @relation("targetId")
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model GameRoom {
@@ -28,6 +31,10 @@ model GameRoom {
     players    Player[]
     rounds     GameRound[]
     gameStatus GameStatus  @default(WAITING)
+    maxPlayers Int         @default(8)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 enum GameStatus {
@@ -44,38 +51,49 @@ enum RoundStatus {
 }
 
 model GameRound {
-    id         String      @id @default(cuid())
-    status     RoundStatus @default(ANSWERING)
-    gameRoomId String
-    gameRoom   GameRoom    @relation(fields: [gameRoomId], references: [id])
-    questionId String
-    question   Question    @relation(fields: [questionId], references: [id])
-
+    id          String      @id @default(cuid())
+    status      RoundStatus @default(ANSWERING)
     roundNumber Int
+    phaseEndsAt DateTime?
 
-    PlayerRoleInRound PlayerRoleInRound[]
+    gameRoomId String
+    gameRoom   GameRoom @relation(fields: [gameRoomId], references: [id])
 
-    PlayerAnswer PlayerAnswer[]
+    questionId String
+    question   Question @relation(fields: [questionId], references: [id])
 
-    PlayersVotes PlayersVotes[]
+    roles   PlayerRoleInRound[]
+    answers PlayerAnswer[]
+    votes   PlayersVotes[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model PlayerAnswer {
-    id        String    @id @default(cuid())
-    roundId   String // reference to GameRound
-    GameRound GameRound @relation(fields: [roundId], references: [id])
-    answer    String
-    playerId  String
-    Player    Player    @relation(fields: [playerId], references: [id])
+    id       String    @id @default(cuid())
+    roundId  String
+    round    GameRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+    playerId String
+    player   Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    answer   String
+
+    createdAt DateTime @default(now())
+
+    @@unique([roundId, playerId])
 }
 
 model PlayerRoleInRound {
-    id        String     @id @default(cuid())
-    roundId   String // reference to GameRound
-    GameRound GameRound  @relation(fields: [roundId], references: [id])
-    role      PlayerRole // "impostor" or "normal"
-    playerId  String
-    Player    Player     @relation(fields: [playerId], references: [id])
+    id       String     @id @default(cuid())
+    roundId  String
+    round    GameRound  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+    playerId String
+    player   Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    role     PlayerRole
+
+    createdAt DateTime @default(now())
+
+    @@unique([roundId, playerId])
 }
 
 enum PlayerRole {
@@ -84,18 +102,30 @@ enum PlayerRole {
 }
 
 model PlayersVotes {
-    id        String    @id @default(cuid())
-    roundId   String // reference to GameRound
-    GameRound GameRound @relation(fields: [roundId], references: [id])
-    voter     Player    @relation("voterId", fields: [voterId], references: [id])
-    voterId   String
-    target    Player    @relation("targetId", fields: [targetId], references: [id])
-    targetId  String // playerId of the player being voted for
+    id       String    @id @default(cuid())
+    roundId  String
+    round    GameRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+    voterId  String
+    voter    Player    @relation("VotesCast", fields: [voterId], references: [id], onDelete: Cascade)
+    targetId String
+    target   Player    @relation("VotesRecv", fields: [targetId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+
+    @@unique([roundId, voterId])
 }
 
 model Question {
-    id                String      @id @default(cuid())
-    normal_question   String
-    impostor_question String
-    GameRound         GameRound[]
+    id               String           @id @default(cuid())
+    normalQuestion   String
+    impostorQuestion String
+    language         QuestionLanguage @default(ENGLISH)
+    createdAt        DateTime         @default(now())
+    GameRound        GameRound[]
+}
+
+enum QuestionLanguage {
+    ENGLISH
+    SPANISH
+    PORTUGUESE
 }
